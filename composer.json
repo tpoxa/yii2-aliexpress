@@ -1,0 +1,16 @@
+{
+    "name": "mtrofimenko/yii2-aliexpress",
+    "description": "Aliexpress API client for Yii2",
+    "require": {
+        "php": ">=5.4.0",
+        "yiisoft/yii2": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "mtrofimenko\\yii2aliexpress\\": ""
+        }
+    }
+}
+
+
+ 
