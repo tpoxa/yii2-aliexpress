@@ -26,6 +26,31 @@ class AliExpress extends Component {
     public $signature;
 
     /**
+     * tracking id 
+     * Get yours tracking id here http://portals.aliexpress.com/track_id_manage.htm
+     * @var string
+     */
+    public $trackingId;
+
+    /**
+     * Cache component, false if none
+     * @var type 
+     */
+    public $cache = 'cache';
+
+    /**
+     *  Time to store cache
+     * @var int 
+     */
+    public $cacheTime = 3600;
+
+    /**
+     * Set namespace for keys in cache
+     * @var string 
+     */
+    public $cacheTag = 'yii2-aliexpress';
+
+    /**
      * Get original Aliexpress client
      * @return Aliexpress 
      * 
@@ -115,7 +140,16 @@ class AliExpress extends Component {
      * </ul>
      * @return mixed
      */
-    public function getListProduct($searchParam, $params = array()) {
+    public function getListProduct($searchParam, $params = []) {
+        $cacheTag = '';
+        $searchParam = trim($searchParam);
+        if ($this->cache) {
+            $cacheTag = $this->cacheTag . '.getListProduct.' . $searchParam . self::getArrayCheckSum($params);
+            $response = $this->getCachedValue($cacheTag);
+            if ($response !== false) {
+                return $response;
+            }
+        }
 
         $request = new ListProductRequest();
         if (is_numeric($searchParam)) {
@@ -128,9 +162,12 @@ class AliExpress extends Component {
             $request->$set($val);
         }
 
-        $responce = $this->getClient()->getData($request);
+        $response = $this->getClient()->getData($request);
 
-        return $responce;
+        if ($this->cache) {
+            $this->setCachedValue($cacheTag, $response);
+        }
+        return $response;
     }
 
     /**
@@ -166,15 +203,30 @@ class AliExpress extends Component {
      */
     public function getProduct($productId, $fields = null) {
 
+        $productId = intval($productId);
+        $cacheTag = '';
+        if ($this->cache) {
+            $cacheTag = $this->cacheTag . '.getProduct.' . $productId . self::getArrayCheckSum($fields);
+            $response = $this->getCachedValue($cacheTag);
+            if ($response !== false) {
+                return $response;
+            }
+        }
+
+
         $request = new ProductRequest();
         $request->setProductId($productId);
         if ($fields !== null) {
             $request->setFields($fields);
         }
 
-        $responce = $this->getClient()->getData($request);
+        $response = $this->getClient()->getData($request);
 
-        return $responce;
+        if ($this->cache) {
+            $this->setCachedValue($cacheTag, $response);
+        }
+
+        return $response;
     }
 
     /**
@@ -197,18 +249,50 @@ class AliExpress extends Component {
      * </ol>
      * @return type
      */
-    public function getPromotionLinks($trackingId, $urls, $fields = null) {
+    public function getPromotionLinks($urls, $fields = null) {
+
+        $cacheTag = '';
+        if ($this->cache) {
+            $cacheTag = $this->cacheTag . '.getPromotionLinks.' . $this->trackingId . md5($urls) . '.' . self::getArrayCheckSum($fields);
+            $response = $this->getCachedValue($cacheTag);
+            if ($response !== false) {
+                return $response;
+            }
+        }
 
         $request = new PromotionLinksRequest();
-        $request->setTrackingId($trackingId);
+        $request->setTrackingId($this->trackingId);
         $request->setUrls($urls);
         if ($fields !== null) {
             $request->setFields($fields);
         }
 
-        $responce = $this->getClient()->getData($request);
+        $response = $this->getClient()->getData($request);
 
-        return $responce;
+
+        if ($this->cache) {
+            $this->setCachedValue($cacheTag, $response);
+        }
+        return $response;
+    }
+
+    /**
+     * Get Array signature
+     * @param type $array
+     * @return string
+     */
+    public static function getArrayCheckSum($array) {
+        if (is_array($array) && sizeof($array)) {
+            return md5(json_encode($array));
+        }
+    }
+
+    private function getCachedValue($tag) {
+        return \Yii::$app->{$this->cache}->get($tag);
+    }
+
+    private function setCachedValue($tag, $value) {
+        return \Yii::$app->{$this->cache}->set($tag, $value, $this->cacheTime);
     }
 
     /**

@@ -24,6 +24,7 @@ class AliClient {
      * @param Request $request
      */
     public function getData($request) {
+
         $apiUrl = $request->getApiUrl($request->getApiRequestName(), $this->appKey);
 
         $ch = curl_init();
